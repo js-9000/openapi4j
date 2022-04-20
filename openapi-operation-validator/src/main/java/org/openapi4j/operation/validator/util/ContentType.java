@@ -2,6 +2,9 @@ package org.openapi4j.operation.validator.util;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,8 +14,11 @@ public final class ContentType {
   private static final Pattern JSON_PATTERN = Pattern.compile("(?:application|text)/(?:.+\\+)?json");
   private static final Pattern XML_PATTERN = Pattern.compile("(?:application|text)/(?:.+\\+)?xml");
   private static final Pattern CHARSET_PATTERN = Pattern.compile("(?:charset=)(.*)");
+  private static final Pattern PARAMETERS_PATTERN = Pattern.compile("; ?([^;\\s]+)=([^;\\s]+)");
+  private static final String CHARSET_PARAMETER = "charset";
 
-  private ContentType() {}
+  private ContentType() {
+  }
 
   /**
    * @param contentType The given content type to check.
@@ -93,6 +99,29 @@ public final class ContentType {
     }
 
     return null;
+  }
+
+  /**
+   *
+   * @param contentType The given content type to check.
+   * @return All parameters of the given content type, including its charset if it is supported.
+   */
+  public static Map<String, String> getParameters(String contentType) {
+    Map<String, String> parameters = new HashMap<>();
+
+    Matcher m = PARAMETERS_PATTERN.matcher(contentType.toLowerCase());
+    while (m.find()) {
+      if (m.groupCount() == 2) {
+        String attribute = m.group(1);
+        String value = m.group(2);
+
+        if (!CHARSET_PARAMETER.equals(attribute) || Charset.isSupported(value)) {
+          parameters.put(attribute, value);
+        }
+      }
+    }
+
+    return Collections.unmodifiableMap(parameters);
   }
 
   public static String getTypeOnly(String contentType) {
